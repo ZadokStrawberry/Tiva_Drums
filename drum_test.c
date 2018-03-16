@@ -1,3 +1,7 @@
+//#define PART_TM4C123GH6PM
+#define TARGET_IS_TM4C123GH6PM
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -8,9 +12,15 @@
 #include "driverlib/timer.h"
 #include "driverlib/pin_map.h"
 
+
+
 #include <stdint.h>
 
 #include "drum_samples.h"
+
+#define RED_LED   GPIO_PIN_1
+#define BLUE_LED  GPIO_PIN_2
+#define GREEN_LED GPIO_PIN_3
 
 volatile const uint8_t *ps = 0;					// Start of sample
 volatile const uint8_t *pe = 0;					// End of sample
