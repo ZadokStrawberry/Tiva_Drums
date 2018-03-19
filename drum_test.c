@@ -18,6 +18,8 @@
 
 #include "drum_samples.h"
 
+void Timer0IntHandler(void);
+
 #define RED_LED   GPIO_PIN_1
 #define BLUE_LED  GPIO_PIN_2
 #define GREEN_LED GPIO_PIN_3
@@ -31,7 +33,7 @@ struct TLOOP {									// Sample loops
 	const uint8_t *ps;							//
 	unsigned time;								//
 } loop[] = {									//
-#if 1											// --- Linn LM-1 samples ---
+#if 0											// --- Linn LM-1 samples ---
 	lm_bas,		250,							// 4096
 	lm_cab,		250,							// 2048
 	lm_cga,		250,							// 4096
@@ -52,7 +54,7 @@ struct TLOOP {									// Sample loops
 	lm_cow,		250,							//
 	ld_cowbel,	500,							//
 #endif											//
-#if 0											// --- Linndrum (LM-2) samples ---
+#if 1											// --- Linndrum (LM-2) samples ---
 	ld_bass1,	250,							// 4096
 	ld_bass6,	250,							// 4096
 	ld_cbsa1,	250,							// 4096
@@ -159,8 +161,8 @@ void PwmSetup(unsigned long port, unsigned char pin, unsigned long base, unsigne
 	}
 	GPIOPinTypeTimer(port, pin);
 	TimerPrescaleSet(base, timer, 0);
-	//TimerLoadSet(base, timer, 2441);	// 32768 Hz  Linndrum & 9000
-	TimerLoadSet(base, timer, 3333);	// 24000 Hz  LM-1
+	TimerLoadSet(base, timer, 2441);	// 32768 Hz  Linndrum & 9000
+	//TimerLoadSet(base, timer, 3333);	// 24000 Hz  LM-1
 	//TimerMatchSet(base, timer, 1024);
 	TimerMatchSet(base, timer, 0);
 	TimerControlLevel(base, timer, 1);
@@ -169,9 +171,33 @@ void PwmSetup(unsigned long port, unsigned char pin, unsigned long base, unsigne
 
 void main(void)
 {
-	SysCtlClockSet(SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ | SYSCTL_USE_PLL | SYSCTL_SYSDIV_2_5);	// 80 MHz
+    //
+        // Setup the system clock to run at 50 Mhz from PLL with crystal reference
+        //
 
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);	// Enable ports
+         SysCtlClockSet(SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ | SYSCTL_USE_PLL | SYSCTL_SYSDIV_2_5);	// 80 MHz
+
+	//
+	    // Enable and wait for the port to be ready for access
+	    /*
+	    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF))
+	    {
+	    }
+
+	    //
+	    // Configure the GPIO port for the LED operation.
+	    //
+	    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED);
+	    //
+	            // Turn on the LED
+	            //
+	            GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, RED_LED);
+
+
+
+	    */
+	 SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);	// Enable ports
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);	// Enable timers
@@ -193,7 +219,7 @@ void main(void)
 	IntEnable(INT_TIMER0A);
 	TimerControlEvent(TIMER0_BASE, TIMER_A, TIMER_EVENT_POS_EDGE);
 	TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
-
+	IntRegister(INT_TIMER0A, Timer0IntHandler); //register the interrupt routine!
 	IntMasterEnable();								// Global interrupt enable
 
 	struct TLOOP *pl = loop;						//
@@ -249,7 +275,9 @@ void Timer0IntHandler(void)
 	TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);	// Clear interrupt flag
 													//
 	static int32_t sample = 1024;					// PWM sample
-													//
+
+	GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, BLUE_LED);
+//
 													// Output previous sample
 	TimerMatchSet(TIMER0_BASE, TIMER_A, sample); 	// PWM audio
 	TimerMatchSet(TIMER1_BASE, TIMER_B, (sample == 1024) ? 0 : sample); // LED
@@ -266,4 +294,7 @@ void Timer0IntHandler(void)
 
 void Timer1IntHandler(void)
 {
+    // Not getting here?
+    GPIOPinWrite(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED, RED_LED);
+
 }
